@@ -34,14 +34,20 @@ const App = () => {
   const [circles, setCircles] = useState<Circle[]>([]);
 
   useEffect(() => {
-    const circlesArray = new Array(selectedNumber)
-      .fill(undefined)
-      .map(getRandomCircle);
-    setCircles(circlesArray);
-
-    // TODO: When the selected number increases, generate new circles, but keep the existing ones
-    // TODO: When the selected number decreases, remove the unnecessary circles, but keep the existing ones
-  }, [selectedNumber]);
+    const oldNumber = circles.length;
+    if (oldNumber < selectedNumber) {
+      // When the selected number increases, generate new circles, but keep the existing ones
+      const numberOfNewCircles = selectedNumber - oldNumber;
+      const newCircles = new Array(numberOfNewCircles)
+        .fill(undefined)
+        .map(getRandomCircle);
+      setCircles([...circles, ...newCircles]);
+    }
+    if (selectedNumber < oldNumber) {
+      // When the selected number decreases, remove the unnecessary circles, but keep the existing ones
+      setCircles(circles.slice(0, selectedNumber));
+    }
+  }, [circles, selectedNumber]);
 
   return (
     <div className="App">
