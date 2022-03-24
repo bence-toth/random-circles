@@ -1,7 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "./App.css";
-
-const numbers = new Array(101).fill(0).map((_, index) => index);
 
 const getRandomNumberBetween = (x: number, y: number) =>
   x + Math.random() * (y - x);
@@ -22,6 +20,10 @@ interface Circle {
   color: string;
 }
 
+interface CircleWithOpacity extends Circle {
+  opacity: number;
+}
+
 const getRandomCircle = (): Circle => ({
   centerX: getRandomNumberBetween(0, 100),
   centerY: getRandomNumberBetween(0, 100),
@@ -29,9 +31,37 @@ const getRandomCircle = (): Circle => ({
   color: getRandomColor(),
 });
 
+const getRandomCircleWithOpacity = (): CircleWithOpacity => ({
+  ...getRandomCircle(),
+  opacity: Math.random(),
+});
+
+const getRandomCircleWithOrWithoutOpacity = (): CircleWithOrWithoutOpacity => {
+  // Let's flip a coin
+  if (Math.random() < 0.5) {
+    // Heads
+    return getRandomCircle();
+  }
+  // Tails
+  return getRandomCircleWithOpacity();
+};
+
+type CircleWithOrWithoutOpacity = Circle | CircleWithOpacity;
+
 const App = () => {
   const [selectedNumber, setSelectedNumber] = useState(0);
-  const [circles, setCircles] = useState<Circle[]>([]);
+  const [circles, setCircles] = useState<CircleWithOrWithoutOpacity[]>([]);
+
+  const wrapperRef = useCallback((element) => {
+    element.addEventListener("wheel", (event: WheelEvent) => {
+      if (event.deltaY < 0) {
+        setSelectedNumber((previousValue) => previousValue + 1);
+      }
+      if (event.deltaY > 0) {
+        setSelectedNumber((previousValue) => Math.max(previousValue - 1, 0));
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const oldNumber = circles.length;
@@ -40,7 +70,7 @@ const App = () => {
       const numberOfNewCircles = selectedNumber - oldNumber;
       const newCircles = new Array(numberOfNewCircles)
         .fill(undefined)
-        .map(getRandomCircle);
+        .map(getRandomCircleWithOrWithoutOpacity);
       setCircles([...circles, ...newCircles]);
     }
     if (selectedNumber < oldNumber) {
@@ -50,17 +80,8 @@ const App = () => {
   }, [circles, selectedNumber]);
 
   return (
-    <div className="App">
-      <select
-        value={selectedNumber}
-        onChange={(event) => {
-          setSelectedNumber(Number(event.target.value));
-        }}
-      >
-        {numbers.map((number) => (
-          <option key={number}>{number}</option>
-        ))}
-      </select>
+    <div className="app" ref={wrapperRef}>
+      {selectedNumber}
       {circles.map((circle, circleIndex) => (
         <div
           key={circleIndex}
@@ -71,6 +92,7 @@ const App = () => {
             backgroundColor: circle.color,
             width: 2 * circle.radius,
             aspectRatio: "1 / 1",
+            opacity: (circle as CircleWithOpacity).opacity ?? 1,
           }}
         ></div>
       ))}
